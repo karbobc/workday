@@ -1,0 +1,8 @@
+services:
+  workday:
+    image: karbobc/workday:latest
+    container_name: workday
+    restart: unless-stopped
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
