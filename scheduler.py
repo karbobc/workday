@@ -8,7 +8,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 scheduler = AsyncIOScheduler()
 
 
-@scheduler.scheduled_job(CronTrigger.from_crontab("* * 2 * *"))
+@scheduler.scheduled_job(CronTrigger.from_crontab("0 10 2 * *"))
 async def fetch_scheduler() -> None:
     print("fetch scheduler start...")
     await fetch.run()
