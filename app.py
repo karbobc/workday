@@ -4,15 +4,14 @@
 import json
 import time
 import fetch
-from typing import Any
 from datetime import datetime
 from pydantic import BaseModel
 from scheduler import scheduler
+from typing import Any, NoReturn
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, Response, status
 from fastapi.exceptions import HTTPException, RequestValidationError, StarletteHTTPException
 
-
-app = FastAPI()
 data = {}
 
 
@@ -24,7 +23,6 @@ class ApiResult(BaseModel):
     data: Any | None = None
 
 
-@app.on_event("startup")
 async def startup_event() -> None:
     await fetch.run()
     with open("data.json", "r", encoding="utf-8") as fp:
@@ -34,9 +32,19 @@ async def startup_event() -> None:
     print("scheduler start")
 
 
-@app.on_event("shutdown")
 async def shutdown_event() -> None:
     scheduler.shutdown()
+    print("scheduler end")
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> NoReturn:
+    await startup_event()
+    yield
+    await shutdown_event()
+
+
+app = FastAPI(lifespan=lifespan)
 
 
 @app.exception_handler(Exception)
