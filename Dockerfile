@@ -1,4 +1,4 @@
-FROM --platform=$BUILDPLATFORM python:3.12-alpine
+FROM --platform=$TARGETPLATFORM python:3.12-alpine
 LABEL maintainer="Karbob <karbobc@gmail.com>"
 
 ENV PYTHONUNBUFFERED 1
