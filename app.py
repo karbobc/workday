@@ -2,7 +2,6 @@
 # -*- coding: UTF-8 -*-
 
 import json
-import time
 import threading
 from contextlib import asynccontextmanager
 from datetime import datetime
@@ -24,7 +23,6 @@ data = {}
 class ApiResult(BaseModel):
     code: str = str(status.HTTP_200_OK)
     success: bool = True
-    timestamp: str = str(int(time.time() * 1000))
     message: str = "OK"
     data: Any | None = None
 
