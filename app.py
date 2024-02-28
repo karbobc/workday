@@ -3,14 +3,19 @@
 
 import json
 import time
-import fetch
-from datetime import datetime
-from pydantic import BaseModel
-from scheduler import scheduler
-from typing import Any, NoReturn
 from contextlib import asynccontextmanager
+from datetime import datetime
+from pathlib import Path
+from typing import Any, NoReturn
+
 from fastapi import FastAPI, Request, Response, status
 from fastapi.exceptions import HTTPException, RequestValidationError, StarletteHTTPException
+from pydantic import BaseModel
+from watchdog.events import FileSystemEvent, PatternMatchingEventHandler
+from watchdog.observers import Observer
+
+import fetch
+from scheduler import scheduler
 
 data = {}
 
@@ -23,25 +28,40 @@ class ApiResult(BaseModel):
     data: Any | None = None
 
 
-async def startup_event() -> None:
-    await fetch.run()
-    with open("data.json", "r", encoding="utf-8") as fp:
-        global data
-        data = json.load(fp)
-    scheduler.start()
-    print("scheduler start")
+class FetchDataEventHandler(PatternMatchingEventHandler):
 
+    def on_created(self, event: FileSystemEvent) -> NoReturn:
+        path = Path(event.src_path)
+        print(f"file creation detected: {path}")
+        if path.name != "data.json":
+            return
+        with open(path, "r", encoding="utf-8") as fp:
+            global data
+            data = json.load(fp)
 
-async def shutdown_event() -> None:
-    scheduler.shutdown()
-    print("scheduler end")
+    def on_modified(self, event: FileSystemEvent) -> NoReturn:
+        path = Path(event.src_path)
+        print(f"file modification detected: {path}")
+        if path.name != "data.json":
+            return
+        with open(path, "r", encoding="utf-8") as fp:
+            global data
+            data = json.load(fp)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> NoReturn:
-    await startup_event()
+    observer = Observer()
+    event_handler = FetchDataEventHandler(patterns=["*.json"], ignore_directories=True, case_sensitive=True)
+    observer.schedule(event_handler, path=".", recursive=False)
+    observer.start()
+    await fetch.run()
+    scheduler.start()
+    print("scheduler start")
     yield
-    await shutdown_event()
+    observer.stop()
+    scheduler.shutdown()
+    print("scheduler end")
 
 
 app = FastAPI(lifespan=lifespan)
