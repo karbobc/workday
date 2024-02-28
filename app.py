@@ -3,6 +3,7 @@
 
 import json
 import time
+import threading
 from contextlib import asynccontextmanager
 from datetime import datetime
 from pathlib import Path
@@ -30,23 +31,32 @@ class ApiResult(BaseModel):
 
 class FetchDataEventHandler(PatternMatchingEventHandler):
 
+    lock: threading.Lock
+
+    def __init__(self, **kwargs):
+        super(FetchDataEventHandler, self).__init__(**kwargs)
+        self.lock = threading.Lock()
+
     def on_created(self, event: FileSystemEvent) -> NoReturn:
         path = Path(event.src_path)
         print(f"file creation detected: {path}")
         if path.name != "data.json":
             return
-        with open(path, "r", encoding="utf-8") as fp:
-            global data
-            data = json.load(fp)
+        self.load_data(path)
 
     def on_modified(self, event: FileSystemEvent) -> NoReturn:
         path = Path(event.src_path)
         print(f"file modification detected: {path}")
         if path.name != "data.json":
             return
+        self.load_data(path)
+
+    def load_data(self, path: Path) -> NoReturn:
         with open(path, "r", encoding="utf-8") as fp:
             global data
+            self.lock.acquire()
             data = json.load(fp)
+            self.lock.release()
 
 
 @asynccontextmanager
