@@ -38,7 +38,7 @@ async def fetch_workday(year: int | str = datetime.now().year) -> Dict[str, bool
         *await fetch_holiday(year + 1),
     ]
     holiday_data = list(filter(lambda x: int(x["date"][:4]) == int(year), holiday_data))
-    data = {item["date"]: item["isOffDay"] for item in holiday_data}
+    data = {item["date"]: not item["isOffDay"] for item in holiday_data}
     start_date = date(year, 1, 1)
     end_date = date(year, 12, 31)
     current_date = start_date
