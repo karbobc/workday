@@ -26,8 +26,8 @@ RUN adduser \
 USER workday
 WORKDIR /app
 
-COPY ./src ./src/
-COPY ./requirements.lock ./requirements.txt
+COPY --chown=workday:workday ./src ./src/
+COPY --chown=workday:workday ./requirements.lock ./requirements.txt
 RUN sed -i '/-e/d' requirements.txt \
     && pip install --no-cache-dir -r requirements.txt
 
