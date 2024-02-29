@@ -24,6 +24,8 @@ colorama==0.4.6
     # via click
 fastapi==0.110.0
     # via workday
+filelock==3.13.1
+    # via workday
 h11==0.14.0
     # via httpcore
     # via uvicorn

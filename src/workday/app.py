@@ -2,7 +2,6 @@
 # -*- coding: UTF-8 -*-
 
 import json
-import threading
 from contextlib import asynccontextmanager
 from datetime import datetime
 from pathlib import Path
@@ -14,6 +13,7 @@ from fastapi.exceptions import (
     RequestValidationError,
     StarletteHTTPException,
 )
+from filelock import FileLock
 from pydantic import BaseModel
 from watchdog.events import FileSystemEvent, PatternMatchingEventHandler
 from watchdog.observers import Observer
@@ -32,12 +32,6 @@ class ApiResult(BaseModel):
 
 
 class FetchDataEventHandler(PatternMatchingEventHandler):
-    lock: threading.Lock
-
-    def __init__(self, **kwargs):
-        super(FetchDataEventHandler, self).__init__(**kwargs)
-        self.lock = threading.Lock()
-
     def on_created(self, event: FileSystemEvent) -> NoReturn:
         path = Path(event.src_path)
         print(f"file creation detected: {path}")
@@ -52,12 +46,13 @@ class FetchDataEventHandler(PatternMatchingEventHandler):
             return
         self.load_data(path)
 
-    def load_data(self, path: Path) -> NoReturn:
-        with open(path, "r", encoding="utf-8") as fp:
-            global data
-            self.lock.acquire()
-            data = json.load(fp)
-            self.lock.release()
+    @staticmethod
+    def load_data(path: Path) -> NoReturn:
+        lock = FileLock(f"{path}.lock")
+        with lock:
+            with open(path, "r", encoding="utf-8") as fp:
+                global data
+                data = json.load(fp)
 
 
 @asynccontextmanager

@@ -1,14 +1,16 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-import os
-import json
-import httpx
 import asyncio
-from httpx import codes
+import json
+import os
+from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Dict, List
-from datetime import date, datetime, timedelta
+
+import httpx
+from filelock import FileLock
+from httpx import codes
 from typing_extensions import TypedDict
 
 session = httpx.AsyncClient()
@@ -59,8 +61,10 @@ async def run() -> None:
     file_path = Path("data.json")
     if os.path.exists(file_path) and len(data) == 0:
         return
-    with open(file_path, "w+", encoding="utf-8") as fp:
-        json.dump(data, fp, separators=(",", ":"))
+    lock = FileLock(f"{file_path}.lock")
+    with lock:
+        with open(file_path, "w+", encoding="utf-8") as fp:
+            json.dump(data, fp, separators=(",", ":"))
 
 
 if __name__ == "__main__":
