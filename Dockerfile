@@ -28,9 +28,10 @@ WORKDIR /app
 COPY ./src ./src/
 COPY ./requirements.lock ./requirements.txt
 RUN sed -i '/-e/d' requirements.txt \
-    && pip install --no-cache-dir -r requirements.txt
+    && pip install --no-cache-dir -r requirements.txt \
+    && rm -rf /app/.cache
 
 EXPOSE 8080
 
 ENV FORWARDED_ALLOW_IPS *
-CMD ["uvicorn", "workday.app:app", "--host", "0.0.0.0", "--port", "8080", "--proxy-headers"]
+CMD ["/app/.local/bin/uvicorn", "workday.app:app", "--host", "0.0.0.0", "--port", "8080", "--proxy-headers"]
