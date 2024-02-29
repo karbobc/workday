@@ -4,9 +4,9 @@ LABEL maintainer="Karbob <karbobc@gmail.com>"
 ENV PYTHONUNBUFFERED 1
 WORKDIR /app
 
-COPY ./src ./
-COPY ./requirements.lock ./
-RUN sed '/-e/d' requirements.lock > requirements.txt \
+COPY ./src ./src/
+COPY ./requirements.lock ./requirements.txt
+RUN sed -i '/-e/d' requirements.txt \
     && pip install --no-cache-dir -r requirements.txt
 
 ENV FORWARDED_ALLOW_IPS *
