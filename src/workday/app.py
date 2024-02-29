@@ -9,13 +9,17 @@ from pathlib import Path
 from typing import Any, NoReturn
 
 from fastapi import FastAPI, Request, Response, status
-from fastapi.exceptions import HTTPException, RequestValidationError, StarletteHTTPException
+from fastapi.exceptions import (
+    HTTPException,
+    RequestValidationError,
+    StarletteHTTPException,
+)
 from pydantic import BaseModel
 from watchdog.events import FileSystemEvent, PatternMatchingEventHandler
 from watchdog.observers import Observer
 
-import fetch
-from scheduler import scheduler
+from workday import fetch
+from workday.scheduler import scheduler
 
 data = {}
 
@@ -28,7 +32,6 @@ class ApiResult(BaseModel):
 
 
 class FetchDataEventHandler(PatternMatchingEventHandler):
-
     lock: threading.Lock
 
     def __init__(self, **kwargs):
@@ -60,7 +63,9 @@ class FetchDataEventHandler(PatternMatchingEventHandler):
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> NoReturn:
     observer = Observer()
-    event_handler = FetchDataEventHandler(patterns=["*.json"], ignore_directories=True, case_sensitive=True)
+    event_handler = FetchDataEventHandler(
+        patterns=["*.json"], ignore_directories=True, case_sensitive=True
+    )
     observer.schedule(event_handler, path=".", recursive=False)
     observer.start()
     await fetch.run()
@@ -77,7 +82,11 @@ app = FastAPI(lifespan=lifespan)
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, e: Exception) -> Response:
-    result = ApiResult(code=str(status.HTTP_500_INTERNAL_SERVER_ERROR), success=False, message=f"internal server error: {repr(e)}")
+    result = ApiResult(
+        code=str(status.HTTP_500_INTERNAL_SERVER_ERROR),
+        success=False,
+        message=f"internal server error: {repr(e)}",
+    )
     return Response(
         content=result.model_dump_json(exclude_none=True),
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -85,7 +94,9 @@ async def global_exception_handler(request: Request, e: Exception) -> Response:
 
 
 @app.exception_handler(StarletteHTTPException)
-async def http_exception_handler(request: Request, e: StarletteHTTPException) -> Response:
+async def http_exception_handler(
+    request: Request, e: StarletteHTTPException
+) -> Response:
     result = ApiResult(code=str(e.status_code), success=False, message=e.detail)
     return Response(
         content=result.model_dump_json(exclude_none=True),
@@ -94,8 +105,14 @@ async def http_exception_handler(request: Request, e: StarletteHTTPException) ->
 
 
 @app.exception_handler(RequestValidationError)
-async def validation_exception_handler(request: Request, e: RequestValidationError) -> Response:
-    result = ApiResult(code=str(status.HTTP_404_NOT_FOUND), success=False, message="incorrect request parameter")
+async def validation_exception_handler(
+    request: Request, e: RequestValidationError
+) -> Response:
+    result = ApiResult(
+        code=str(status.HTTP_404_NOT_FOUND),
+        success=False,
+        message="incorrect request parameter",
+    )
     return Response(
         content=result.model_dump_json(exclude_none=True),
         status_code=status.HTTP_404_NOT_FOUND,
@@ -121,9 +138,6 @@ def workday(year: int, month: int, day: int) -> Response:
             status_code=status.HTTP_200_OK,
         )
     except KeyError:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="incorrect date")
-
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run("app:app", port=8080, log_level="info", reload=True)
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="incorrect date"
+        )

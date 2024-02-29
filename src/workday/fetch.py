@@ -25,7 +25,9 @@ async def fetch_holiday(year: int | str = datetime.now().year) -> List[HolidayIt
         response = await session.get(
             f"https://raw.githubusercontent.com/NateScarlet/holiday-cn/master/{year}.json",
         )
-        return [] if response.status_code != codes.OK else response.json().get("days", [])
+        return (
+            [] if response.status_code != codes.OK else response.json().get("days", [])
+        )
     except httpx.TimeoutException:
         print("requests timeout")
         return []
