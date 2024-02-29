@@ -16,9 +16,8 @@ ARG UID=10001
 RUN adduser \
     --disabled-password \
     --gecos "" \
-    --home "/nonexistent" \
+    --home "/app" \
     --shell "/sbin/nologin" \
-    --no-create-home \
     --uid "${UID}" \
     workday
 
@@ -26,8 +25,8 @@ RUN adduser \
 USER workday
 WORKDIR /app
 
-COPY --chown=workday:workday ./src ./src/
-COPY --chown=workday:workday ./requirements.lock ./requirements.txt
+COPY ./src ./src/
+COPY ./requirements.lock ./requirements.txt
 RUN sed -i '/-e/d' requirements.txt \
     && pip install --no-cache-dir -r requirements.txt
 
