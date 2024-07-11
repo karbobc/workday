@@ -2,6 +2,7 @@
 # -*- coding: UTF-8 -*-
 
 import json
+import logging
 from contextlib import asynccontextmanager
 from datetime import datetime
 from pathlib import Path
@@ -18,10 +19,11 @@ from pydantic import BaseModel
 from watchdog.events import FileSystemEvent, PatternMatchingEventHandler
 from watchdog.observers import Observer
 
-from workday import fetch
-from workday.scheduler import scheduler
+from . import fetch
+from .scheduler import scheduler
 
 data = {}
+log = logging.getLogger("uvicorn")
 
 
 class ApiResult(BaseModel):
@@ -34,14 +36,14 @@ class ApiResult(BaseModel):
 class FetchDataEventHandler(PatternMatchingEventHandler):
     def on_created(self, event: FileSystemEvent) -> NoReturn:
         path = Path(event.src_path)
-        print(f"file creation detected: {path}")
+        log.info(f"file creation detected: {path}")
         if path.name != "data.json":
             return
         self.load_data(path)
 
     def on_modified(self, event: FileSystemEvent) -> NoReturn:
         path = Path(event.src_path)
-        print(f"file modification detected: {path}")
+        log.info(f"file modification detected: {path}")
         if path.name != "data.json":
             return
         self.load_data(path)
@@ -65,11 +67,11 @@ async def lifespan(app: FastAPI) -> NoReturn:
     observer.start()
     await fetch.run()
     scheduler.start()
-    print("scheduler start")
+    log.info("scheduler start")
     yield
     observer.stop()
     scheduler.shutdown()
-    print("scheduler end")
+    log.info("scheduler end")
 
 
 app = FastAPI(lifespan=lifespan)
