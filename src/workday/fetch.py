@@ -1,12 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
+import itertools
 import asyncio
 import json
 import os
 from datetime import date, datetime, timedelta
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 import httpx
 from filelock import FileLock
@@ -36,13 +37,15 @@ async def fetch_holiday(year: int | str = datetime.now().year) -> List[HolidayIt
 
 
 async def fetch_workday(year: int | str = datetime.now().year) -> Dict[str, bool]:
-    holiday_data: List[HolidayItem] = [
-        *await fetch_holiday(year - 1),
-        *await fetch_holiday(year),
-        *await fetch_holiday(year + 1),
+    tasks = [
+        asyncio.create_task(fetch_holiday(year - 1)),
+        asyncio.create_task(fetch_holiday(year)),
+        asyncio.create_task(fetch_holiday(year + 1)),
     ]
-    holiday_data = list(filter(lambda x: int(x["date"][:4]) == int(year), holiday_data))
-    data = {item["date"]: not item["isOffDay"] for item in holiday_data}
+    results: Tuple[List[HolidayItem]] = await asyncio.gather(*tasks)
+    holiday_data: List[HolidayItem] = list(itertools.chain.from_iterable(results))
+    holiday_data_filter = list(filter(lambda x: int(x["date"][:4]) == int(year), holiday_data))
+    data = {item["date"]: not item["isOffDay"] for item in holiday_data_filter}
     start_date = date(year, 1, 1)
     end_date = date(year, 12, 31)
     current_date = start_date
@@ -51,8 +54,7 @@ async def fetch_workday(year: int | str = datetime.now().year) -> Dict[str, bool
         if data.get(formatted_date) is None:
             data.update({formatted_date: current_date.weekday() not in [5, 6]})
         current_date += timedelta(days=1)
-    data = dict(sorted(data.items(), key=lambda x: x[0]))
-    return data
+    return dict(sorted(data.items(), key=lambda x: x[0]))
 
 
 async def run() -> None:
