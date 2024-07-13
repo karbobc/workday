@@ -34,4 +34,4 @@ RUN sed -i '/-e/d' requirements.txt \
 EXPOSE 8080
 
 ENV FORWARDED_ALLOW_IPS *
-CMD ["/app/.local/bin/uvicorn", "workday.app:app", "--host", "0.0.0.0", "--port", "8080", "--proxy-headers"]
+CMD ["/app/.local/bin/uvicorn", "workday:app", "--host", "0.0.0.0", "--port", "8080", "--proxy-headers"]

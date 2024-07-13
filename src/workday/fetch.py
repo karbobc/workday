@@ -2,11 +2,11 @@
 # -*- coding: UTF-8 -*-
 
 import asyncio
+import itertools
 import json
 import os
 from datetime import date, datetime, timedelta
 from pathlib import Path
-from typing import Dict, List
 
 import httpx
 from filelock import FileLock
@@ -22,27 +22,27 @@ class HolidayItem(TypedDict):
     isOffDay: bool
 
 
-async def fetch_holiday(year: int | str = datetime.now().year) -> List[HolidayItem]:
+async def fetch_holiday(year: int | str = datetime.now().year) -> list[HolidayItem]:
     try:
         response = await session.get(
             f"https://raw.githubusercontent.com/NateScarlet/holiday-cn/master/{year}.json",
         )
-        return (
-            [] if response.status_code != codes.OK else response.json().get("days", [])
-        )
+        return [] if response.status_code != codes.OK else response.json().get("days", [])
     except httpx.TimeoutException:
         print("requests timeout")
         return []
 
 
-async def fetch_workday(year: int | str = datetime.now().year) -> Dict[str, bool]:
-    holiday_data: List[HolidayItem] = [
-        *await fetch_holiday(year - 1),
-        *await fetch_holiday(year),
-        *await fetch_holiday(year + 1),
+async def fetch_workday(year: int | str = datetime.now().year) -> dict[str, bool]:
+    tasks = [
+        asyncio.create_task(fetch_holiday(year - 1)),
+        asyncio.create_task(fetch_holiday(year)),
+        asyncio.create_task(fetch_holiday(year + 1)),
     ]
-    holiday_data = list(filter(lambda x: int(x["date"][:4]) == int(year), holiday_data))
-    data = {item["date"]: not item["isOffDay"] for item in holiday_data}
+    results: tuple[list[HolidayItem]] = await asyncio.gather(*tasks)
+    holiday_data: list[HolidayItem] = list(itertools.chain.from_iterable(results))
+    holiday_data_filter = list(filter(lambda x: int(x["date"][:4]) == int(year), holiday_data))
+    data = {item["date"]: not item["isOffDay"] for item in holiday_data_filter}
     start_date = date(year, 1, 1)
     end_date = date(year, 12, 31)
     current_date = start_date
@@ -51,8 +51,7 @@ async def fetch_workday(year: int | str = datetime.now().year) -> Dict[str, bool
         if data.get(formatted_date) is None:
             data.update({formatted_date: current_date.weekday() not in [5, 6]})
         current_date += timedelta(days=1)
-    data = dict(sorted(data.items(), key=lambda x: x[0]))
-    return data
+    return dict(sorted(data.items(), key=lambda x: x[0]))
 
 
 async def run() -> None:
