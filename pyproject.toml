@@ -21,6 +21,9 @@ build-backend = "hatchling.build"
 managed = true
 dev-dependencies = []
 
+[tool.ruff]
+line-length = 120
+
 [tool.ruff.lint]
 select = [
     "E",  # pycodestyle errors
@@ -30,9 +33,6 @@ select = [
     "FA", # flake8 annotations
     "UP", # pyupgrade
 ]
-
-[tool.ruff.format]
-
 
 [tool.hatch.metadata]
 allow-direct-references = true
