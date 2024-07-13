@@ -21,6 +21,9 @@ build-backend = "hatchling.build"
 managed = true
 dev-dependencies = []
 
+[tool.ruff.lint]
+select = ["E", "F", "I", "FA", "UP"]
+
 [tool.hatch.metadata]
 allow-direct-references = true
 
