@@ -52,7 +52,7 @@ class FetchDataEventHandler(PatternMatchingEventHandler):
     def load_data(path: Path) -> NoReturn:
         lock = FileLock(f"{path}.lock")
         with lock:
-            with open(path, "r", encoding="utf-8") as fp:
+            with open(path, encoding="utf-8") as fp:
                 global data
                 data = json.load(fp)
 

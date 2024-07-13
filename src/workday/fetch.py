@@ -1,13 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-import itertools
 import asyncio
+import itertools
 import json
 import os
 from datetime import date, datetime, timedelta
 from pathlib import Path
-from typing import Dict, List, Tuple
 
 import httpx
 from filelock import FileLock
@@ -23,7 +22,7 @@ class HolidayItem(TypedDict):
     isOffDay: bool
 
 
-async def fetch_holiday(year: int | str = datetime.now().year) -> List[HolidayItem]:
+async def fetch_holiday(year: int | str = datetime.now().year) -> list[HolidayItem]:
     try:
         response = await session.get(
             f"https://raw.githubusercontent.com/NateScarlet/holiday-cn/master/{year}.json",
@@ -36,15 +35,17 @@ async def fetch_holiday(year: int | str = datetime.now().year) -> List[HolidayIt
         return []
 
 
-async def fetch_workday(year: int | str = datetime.now().year) -> Dict[str, bool]:
+async def fetch_workday(year: int | str = datetime.now().year) -> dict[str, bool]:
     tasks = [
         asyncio.create_task(fetch_holiday(year - 1)),
         asyncio.create_task(fetch_holiday(year)),
         asyncio.create_task(fetch_holiday(year + 1)),
     ]
-    results: Tuple[List[HolidayItem]] = await asyncio.gather(*tasks)
-    holiday_data: List[HolidayItem] = list(itertools.chain.from_iterable(results))
-    holiday_data_filter = list(filter(lambda x: int(x["date"][:4]) == int(year), holiday_data))
+    results: tuple[list[HolidayItem]] = await asyncio.gather(*tasks)
+    holiday_data: list[HolidayItem] = list(itertools.chain.from_iterable(results))
+    holiday_data_filter = list(
+        filter(lambda x: int(x["date"][:4]) == int(year), holiday_data)
+    )
     data = {item["date"]: not item["isOffDay"] for item in holiday_data_filter}
     start_date = date(year, 1, 1)
     end_date = date(year, 12, 31)
