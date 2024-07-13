@@ -32,6 +32,26 @@ class ApiResult(BaseModel):
     message: str = "OK"
     data: Any | None = None
 
+    @staticmethod
+    def ok(data: Any | None = None) -> Response:
+        result = ApiResult(data=data)
+        return Response(
+            content=result.model_dump_json(exclude_none=True),
+            status_code=status.HTTP_200_OK,
+        )
+
+    @staticmethod
+    def e(status_code: int, message: str):
+        result = ApiResult(
+            code=str(status_code),
+            success=False,
+            message=message,
+        )
+        return Response(
+            content=result.model_dump_json(exclude_none=True),
+            status_code=status_code,
+        )
+
 
 class FetchDataEventHandler(PatternMatchingEventHandler):
     def on_created(self, event: FileSystemEvent) -> NoReturn:
@@ -60,9 +80,7 @@ class FetchDataEventHandler(PatternMatchingEventHandler):
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> NoReturn:
     observer = Observer()
-    event_handler = FetchDataEventHandler(
-        patterns=["*.json"], ignore_directories=True, case_sensitive=True
-    )
+    event_handler = FetchDataEventHandler(patterns=["*.json"], ignore_directories=True, case_sensitive=True)
     observer.schedule(event_handler, path=".", recursive=False)
     observer.start()
     await fetch.run()
@@ -79,62 +97,28 @@ app = FastAPI(lifespan=lifespan)
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, e: Exception) -> Response:
-    result = ApiResult(
-        code=str(status.HTTP_500_INTERNAL_SERVER_ERROR),
-        success=False,
-        message=f"internal server error: {repr(e)}",
-    )
-    return Response(
-        content=result.model_dump_json(exclude_none=True),
-        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-    )
+    return ApiResult.e(status.HTTP_500_INTERNAL_SERVER_ERROR, f"internal server error: {repr(e)}")
 
 
 @app.exception_handler(StarletteHTTPException)
-async def http_exception_handler(
-    request: Request, e: StarletteHTTPException
-) -> Response:
-    result = ApiResult(code=str(e.status_code), success=False, message=e.detail)
-    return Response(
-        content=result.model_dump_json(exclude_none=True),
-        status_code=e.status_code,
-    )
+async def http_exception_handler(request: Request, e: StarletteHTTPException) -> Response:
+    return ApiResult.e(e.status_code, e.detail)
 
 
 @app.exception_handler(RequestValidationError)
-async def validation_exception_handler(
-    request: Request, e: RequestValidationError
-) -> Response:
-    result = ApiResult(
-        code=str(status.HTTP_404_NOT_FOUND),
-        success=False,
-        message="incorrect request parameter",
-    )
-    return Response(
-        content=result.model_dump_json(exclude_none=True),
-        status_code=status.HTTP_404_NOT_FOUND,
-    )
+async def validation_exception_handler(request: Request, e: RequestValidationError) -> Response:
+    return ApiResult.e(status.HTTP_400_BAD_REQUEST, f"incorrect request parameter: {e.errors()}")
 
 
 @app.get("/api/workday/today")
 def workday_today() -> Response:
     today = datetime.now()
-    result = ApiResult(data={"isWorkday": data[today.strftime("%Y-%m-%d")]})
-    return Response(
-        content=result.model_dump_json(exclude_none=True),
-        status_code=status.HTTP_200_OK,
-    )
+    return ApiResult.ok(data={"isWorkday": data[today.strftime("%Y-%m-%d")]})
 
 
 @app.get("/api/workday/{year}/{month}/{day}")
 def workday(year: int, month: int, day: int) -> Response:
     try:
-        result = ApiResult(data={"isWorkday": data[f"{year}-{month:02}-{day:02}"]})
-        return Response(
-            content=result.model_dump_json(exclude_none=True),
-            status_code=status.HTTP_200_OK,
-        )
+        return ApiResult.ok(data={"isWorkday": data[f"{year}-{month:02}-{day:02}"]})
     except KeyError:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="incorrect date"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="incorrect date")

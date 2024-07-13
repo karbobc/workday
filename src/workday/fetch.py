@@ -27,9 +27,7 @@ async def fetch_holiday(year: int | str = datetime.now().year) -> list[HolidayIt
         response = await session.get(
             f"https://raw.githubusercontent.com/NateScarlet/holiday-cn/master/{year}.json",
         )
-        return (
-            [] if response.status_code != codes.OK else response.json().get("days", [])
-        )
+        return [] if response.status_code != codes.OK else response.json().get("days", [])
     except httpx.TimeoutException:
         print("requests timeout")
         return []
@@ -43,9 +41,7 @@ async def fetch_workday(year: int | str = datetime.now().year) -> dict[str, bool
     ]
     results: tuple[list[HolidayItem]] = await asyncio.gather(*tasks)
     holiday_data: list[HolidayItem] = list(itertools.chain.from_iterable(results))
-    holiday_data_filter = list(
-        filter(lambda x: int(x["date"][:4]) == int(year), holiday_data)
-    )
+    holiday_data_filter = list(filter(lambda x: int(x["date"][:4]) == int(year), holiday_data))
     data = {item["date"]: not item["isOffDay"] for item in holiday_data_filter}
     start_date = date(year, 1, 1)
     end_date = date(year, 12, 31)
