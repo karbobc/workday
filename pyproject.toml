@@ -22,7 +22,17 @@ managed = true
 dev-dependencies = []
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "FA", "UP"]
+select = [
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings
+    "F",  # pyflakes
+    "I",  # isort
+    "FA", # flake8 annotations
+    "UP", # pyupgrade
+]
+
+[tool.ruff.format]
+
 
 [tool.hatch.metadata]
 allow-direct-references = true
