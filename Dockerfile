@@ -1,4 +1,4 @@
-FROM --platform=$TARGETPLATFORM python:3.12-alpine
+FROM --platform=$TARGETPLATFORM python:3.14-alpine
 LABEL maintainer="Karbob <karbobc@gmail.com>"
 
 # Prevents Python from writing pyc files.
